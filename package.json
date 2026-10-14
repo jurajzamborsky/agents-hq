@@ -1,0 +1,62 @@
+{
+  "name": "agents-hq",
+  "version": "0.1.0",
+  "description": "Agents HQ by Bonus Round: your Claude Code and Codex agents at work in a 3D voxel office. Read-only, runs only on your computer.",
+  "keywords": [
+    "claude-code",
+    "codex",
+    "ai-agents",
+    "office",
+    "voxel",
+    "three.js"
+  ],
+  "homepage": "https://bonusround.sk/agents-hq",
+  "author": "Bonus Round <ahoj@bonusround.sk> (https://bonusround.sk)",
+  "license": "MIT",
+  "bin": {
+    "agents-hq": "dist/agents-hq.js"
+  },
+  "files": [
+    "dist/agents-hq.js",
+    "dist/assets/",
+    "dist/webview/",
+    "LICENSE",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "webview-ui"
+  ],
+  "scripts": {
+    "build": "npm run check-types && node esbuild.js --production && npm run build:webview",
+    "build:webview": "cd webview-ui && npm run build",
+    "check-types": "tsc --noEmit",
+    "start": "node dist/agents-hq.js",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@fastify/static": "^10.1.2",
+    "@fastify/websocket": "^11.2.0",
+    "fastify": "^5.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.x",
+    "@types/pngjs": "^6.0.5",
+    "esbuild": "^0.28.0",
+    "pngjs": "^7.0.0",
+    "typescript": "^5.9.3"
+  },
+  "contributors": [
+    "Juraj Zamborský (https://bonusround.sk)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jurajzamborsky/agents-hq.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jurajzamborsky/agents-hq/issues"
+  }
+}
