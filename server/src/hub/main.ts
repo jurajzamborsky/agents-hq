@@ -22,7 +22,7 @@ const HELP = `
 
   Usage: agents-hq [--port <number>] [--no-open] [--demo]
 
-    --port <n>   port on 127.0.0.1 (default ${DEFAULT_PORT})
+    --port <n>   port on 127.0.0.1 (default: first free from ${DEFAULT_PORT})
     --no-open    do not open the browser
     --demo       made-up agents, to try the office or film it
 
@@ -30,9 +30,12 @@ const HELP = `
   computer. Nothing is written outside ~/.agents-hq, nothing leaves the machine.
 `;
 
-function parsePort(argv: string[]): number {
+/** Without --port, this many ports from DEFAULT_PORT up are tried until one is free. */
+const PORT_ATTEMPTS = 10;
+
+function parsePort(argv: string[]): number | null {
   const index = argv.findIndex((a) => a === '--port' || a === '-p');
-  if (index === -1) return DEFAULT_PORT;
+  if (index === -1) return null;
   const port = Number(argv[index + 1]);
   if (!Number.isInteger(port) || port < 1024 || port > 65535) {
     console.error('[agents-hq] --port must be an integer between 1024 and 65535');
@@ -49,13 +52,29 @@ function openBrowser(url: string): void {
   else execFile('xdg-open', [url], done);
 }
 
-function runningUrl(): string | null {
+/**
+ * The URL of an office that already runs on this computer, or null. The saved
+ * URL is only trusted when it answers as Agents HQ: the file can outlive a
+ * crashed run, and its port may meanwhile belong to a different app.
+ */
+async function runningUrl(): Promise<string | null> {
+  let url: string;
   try {
-    const url = fs.readFileSync(path.join(DATA_DIR, 'url'), 'utf-8').trim();
-    return url.startsWith('http://127.0.0.1:') ? url : null;
+    url = fs.readFileSync(path.join(DATA_DIR, 'url'), 'utf-8').trim();
   } catch {
     return null;
   }
+  if (!url.startsWith('http://127.0.0.1:')) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(1500) });
+    return res.ok && (await res.text()).includes('<title>Agents HQ</title>') ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+function portOf(url: string): number {
+  return Number(new URL(url).port);
 }
 
 async function main(): Promise<void> {
@@ -64,8 +83,17 @@ async function main(): Promise<void> {
     console.log(HELP);
     return;
   }
-  const port = parsePort(argv);
+  const explicitPort = parsePort(argv);
+  const demo = argv.includes('--demo');
   const shouldOpen = !argv.includes('--no-open');
+
+  // Running the one-liner again just reopens the office that already runs.
+  const existing = demo ? null : await runningUrl();
+  if (existing && (explicitPort === null || portOf(existing) === explicitPort)) {
+    console.log(`\n  Agents HQ already runs at ${existing}\n`);
+    if (shouldOpen) openBrowser(existing);
+    return;
+  }
 
   const distRoot = __dirname;
   // The asset loader is chatty; keep the terminal output short.
@@ -74,24 +102,30 @@ async function main(): Promise<void> {
   const assetCache = await buildAssetCache(distRoot).finally(() => {
     console.log = log;
   });
-  const source = await createSource(argv.includes('--demo'));
+  const source = await createSource(demo);
 
+  // Another app may hold the default port; then take the next free one.
+  const ports =
+    explicitPort !== null
+      ? [explicitPort]
+      : Array.from({ length: PORT_ATTEMPTS }, (_, i) => DEFAULT_PORT + i);
   let server;
-  try {
-    server = await startOfficeServer({
-      source,
-      assetCache,
-      staticDir: path.join(distRoot, 'webview'),
-      port,
-    });
-  } catch (err) {
-    const existing = runningUrl();
-    if ((err as NodeJS.ErrnoException).code === 'EADDRINUSE' && existing) {
-      console.log(`\n  Agents HQ already runs at ${existing}\n`);
-      if (shouldOpen) openBrowser(existing);
-      return;
+  for (const port of ports) {
+    try {
+      server = await startOfficeServer({
+        source,
+        assetCache,
+        staticDir: path.join(distRoot, 'webview'),
+        port,
+      });
+      break;
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw err;
     }
-    throw err;
+  }
+  if (!server) {
+    const tried = ports.length === 1 ? `port ${ports[0]} is` : `ports ${ports[0]}–${ports[ports.length - 1]} are`;
+    throw new Error(`${tried} already used by another app. Pick a free one: --port <number>`);
   }
 
   console.log(`\n  Agents HQ by Bonus Round`);

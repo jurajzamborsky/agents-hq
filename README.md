@@ -72,7 +72,7 @@ Našiel si bezpečnostný problém? Pozri [SECURITY.md](SECURITY.md).
 
 | Premenná | Predvolene | Čo robí |
 |---|---|---|
-| `--port` | `3200` | port na `127.0.0.1` |
+| `--port` | prvý voľný od `3200` | port na `127.0.0.1` |
 | `--no-open` | | neotvorí prehliadač |
 | `--demo` | | vymyslení agenti |
 | `HQ_ACTIVE_MINUTES` | `45` | po koľkých minútach bez aktivity session zmizne |

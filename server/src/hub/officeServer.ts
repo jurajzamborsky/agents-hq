@@ -596,7 +596,12 @@ export async function startOfficeServer(options: OfficeServerOptions): Promise<O
     socket.on('close', () => clients.delete(send));
   });
 
-  await app.listen({ host: '127.0.0.1', port: options.port });
+  try {
+    await app.listen({ host: '127.0.0.1', port: options.port });
+  } catch (err) {
+    await app.close().catch(() => {});
+    throw err;
+  }
 
   // First poll before anyone connects, then keep polling.
   await poll().catch(() => {});
@@ -618,8 +623,10 @@ export async function startOfficeServer(options: OfficeServerOptions): Promise<O
     url,
     stop: async () => {
       clearInterval(timer);
+      // Another office (e.g. a --demo run) may have saved its URL since; leave that one.
       try {
-        fs.unlinkSync(path.join(DATA_DIR, 'url'));
+        const file = path.join(DATA_DIR, 'url');
+        if (fs.readFileSync(file, 'utf-8').trim() === url) fs.unlinkSync(file);
       } catch {
         // already gone
       }
