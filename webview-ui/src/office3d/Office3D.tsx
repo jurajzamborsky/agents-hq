@@ -90,6 +90,15 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
     }
 
     const VIEW = 15; // ortho: world units visible vertically at zoom 1
+    // Zoom-out limit follows the office size, so even a big office (many projects) fits on screen.
+    let officeSpan = 0; // cols + rows of the current layout
+    const updateMinZoom = () => {
+      if (!controls || !officeSpan) return;
+      const aspect = (host.clientWidth || 1) / (host.clientHeight || 1);
+      // From above the floor's diagonal runs across the screen: ~0.8 (c+r) wide, ~0.62 (c+r) tall (with the camera target off-center).
+      const fit = Math.min((VIEW * aspect) / (0.8 * officeSpan), VIEW / (0.62 * officeSpan));
+      controls.minZoom = Math.min(0.4, fit * 0.8);
+    };
     const resize = () => {
       const w = host.clientWidth || 1;
       const h = host.clientHeight || 1;
@@ -102,6 +111,7 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
       ortho.updateProjectionMatrix();
       persp.aspect = aspect;
       persp.updateProjectionMatrix();
+      updateMinZoom();
     };
     const ro = new ResizeObserver(resize);
     ro.observe(host);
@@ -112,13 +122,9 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
     overlay.style.cssText = 'position:absolute;inset:0;pointer-events:none;overflow:hidden';
     host.appendChild(overlay);
 
-    let hud: HTMLDivElement | null = null;
     let hint: HTMLDivElement | null = null;
     let crosshair: HTMLDivElement | null = null;
     if (pov) {
-      hud = document.createElement('div');
-      hud.className = 'pixel-panel';
-      hud.style.cssText = 'position:absolute;top:8px;right:8px;padding:6px 14px;font-size:14px;font-weight:600;display:flex;gap:14px';
       crosshair = document.createElement('div');
       crosshair.style.cssText =
         'position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.45)';
@@ -127,7 +133,7 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
       hint.style.cssText =
         'position:absolute;left:50%;bottom:90px;transform:translateX(-50%);padding:8px 16px;font-size:15px;font-weight:600;text-align:center;line-height:1.35';
       hint.innerHTML = `${tr('povEnter')}<br><span style="opacity:.75;font-size:14px">${tr('povHelp')}</span>`;
-      overlay.append(hud, crosshair, hint);
+      overlay.append(crosshair, hint);
     }
 
     // ── Static office, rebuilt when the layout object, language or company name changes ──
@@ -138,7 +144,6 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
     });
     const unsubscribeSettings = onHqSettings(() => {
       settingsChanged = true;
-      hudKey = '';
       if (hint) hint.innerHTML = `${tr('povEnter')}<br><span style="opacity:.75;font-size:14px">${tr('povHelp')}</span>`;
     });
     let staticGroup: THREE.Group | null = null;
@@ -164,6 +169,8 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
         ortho.zoom = 0.62; // open wide enough to see several rooms at once
         ortho.updateProjectionMatrix();
       }
+      officeSpan = built.size.cols + built.size.rows;
+      updateMinZoom();
       const span = Math.max(built.size.cols, built.size.rows);
       sun.position.set(built.center.x - span * 0.4, span * 0.9, built.center.z - span * 0.25);
       sun.target.position.copy(built.center);
@@ -447,7 +454,6 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
     const head = new THREE.Vector3();
     const side = new THREE.Vector3();
     const sideOffset = new THREE.Vector3(0.35, -0.1, 0);
-    let hudKey = '';
     const frame = () => {
       raf = requestAnimationFrame(frame);
       const dt = Math.min(clock.getDelta(), 0.1);
@@ -475,23 +481,9 @@ export function Office3D({ officeState, agentTools, alwaysShowLabels, mode, tour
       if (crosshair && tourRef.current !== null) crosshair.style.display = 'none';
       if (crosshair) crosshair.style.background = hovered !== null ? '#c6f05a' : '#fff';
 
-      let waiting = 0;
-      let working = 0;
-      for (const ch of officeState.characters.values()) {
-        if (ch.isSubagent) continue;
-        if (ch.bubbleType === 'permission' || officeState.agentRawStatus.get(ch.id) === 'blocked') waiting++;
-        else if (ch.isActive) working++;
-      }
       const now = Date.now();
       const speakers = currentSpeakers(officeState.characters.values(), layout, now);
 
-      if (hud) {
-        const key = `${waiting}|${working}|${tr('hudWorking')}`;
-        if (key !== hudKey) {
-          hudKey = key;
-          hud.innerHTML = `<span style="color:${waiting ? '#ff8f6b' : 'inherit'}">● ${tr('hudWaiting', { n: waiting })}</span><span style="color:#c6f05a">● ${tr('hudWorking', { n: working })}</span>`;
-        }
-      }
 
       for (const ch of officeState.characters.values()) {
         const p = people.get(ch.id);

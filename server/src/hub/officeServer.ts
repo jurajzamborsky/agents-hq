@@ -442,6 +442,24 @@ export async function startOfficeServer(options: OfficeServerOptions): Promise<O
         return;
       }
 
+      case 'hubListAgents': {
+        // Read-only overview for the agent list (status, project, whether the terminal can be focused).
+        send({
+          type: 'hubAgentList',
+          agents: [...agents.values()].map((a) => ({
+            id: a.id,
+            project: a.project,
+            title: a.title,
+            status: a.status,
+            kind: a.kind,
+            activity: a.activity,
+            napping: a.napping,
+            canFocus: a.canFocus,
+          })),
+        });
+        return;
+      }
+
       case 'hubFocusAgent': {
         const agent = agentById(msg.id);
         if (!agent || !agent.canFocus || !source.focus) return;

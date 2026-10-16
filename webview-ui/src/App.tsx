@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AgentDetailPanel } from './components/AgentDetailPanel.js';
+import { AgentsHud } from './components/AgentsHud.js';
 import { ConnectionIndicator } from './components/ConnectionIndicator.js';
 import { HqSettings } from './components/HqSettings.js';
 import { Modal } from './components/ui/Modal.js';
@@ -227,6 +228,8 @@ function App() {
         alwaysShowLabels={showLabels}
         onToggleLabels={toggleLabels}
       />
+
+      {!TOUR && <AgentsHud officeState={officeState} />}
 
       <AgentDetailPanel officeState={officeState} />
     </div>
