@@ -11,20 +11,27 @@ by [Bonus Round](https://bonusround.sk/agents-hq?utm_source=github&utm_medium=re
 
 ## Spustenie
 
-Potrebuješ [Node.js](https://nodejs.org) 20 alebo novší. Do terminálu vlož:
+Jeden riadok, zvyšok spraví sám. Otvor Terminál (Mac) alebo PowerShell (Windows), vlož riadok a stlač Enter.
 
+**Mac**
 ```bash
-npx agents-hq
+curl -fsSL https://bonusround.sk/ahq.sh | bash
 ```
 
-Office sa otvorí v prehliadači.
-Zastavíš ho cez `Ctrl+C`.
+**Windows (PowerShell)**
+```powershell
+irm https://bonusround.sk/ahq.ps1 | iex
+```
+
+Ak nemáš [Node.js](https://nodejs.org) 20 alebo novší, skript si ho stiahne sám do `~/.agents-hq/node` (bez admin hesla, overí kontrolný súčet).
+Office sa otvorí v prehliadači, zastavíš ho cez `Ctrl+C`. Nabudúce stačí vložiť ten istý riadok znova.
+
+Máš Node.js? Rovnako funguje `npx https://bonusround.sk/agents-hq.tgz`.
+Najprv len pozrieť s vymyslenými agentmi: `curl -fsSL https://bonusround.sk/ahq.sh | bash -s -- --demo`
 
 Bez terminálu po ruke? Napíš svojmu agentovi (Claude Code alebo Codex):
 
-> Spusti mi Agents HQ príkazom `npx agents-hq` a otvor odkaz, ktorý vypíše.
-
-Chceš si ho najprv len pozrieť? `npx agents-hq --demo` ukáže vymyslených agentov.
+> Spusti mi Agents HQ príkazom `curl -fsSL https://bonusround.sk/ahq.sh | bash` a otvor odkaz, ktorý vypíše.
 
 ## Čo uvidíš
 
@@ -57,7 +64,7 @@ Agents HQ má prístup k tomu, na čom pracuješ, preto je postavený tak, aby n
 - **Zapisuje len do vlastného priečinka** `~/.agents-hq` (jazyk, názov firmy, poradie stoličiek), práva `0700` a `0600`.
 
 Odinštalovanie: `npx` si balík len stiahne do svojej cache, nič sa neinštaluje natrvalo.
-Stačí zmazať `~/.agents-hq`.
+Stačí zmazať `~/.agents-hq` (aj s Node.js, ak ho stiahol skript).
 
 Našiel si bezpečnostný problém? Pozri [SECURITY.md](SECURITY.md).
 
@@ -98,9 +105,11 @@ MIT. Postavené na open-source projekte [Pixel Agents](https://github.com/pixel-
 **Your AI agents at work in a 3D voxel office.** Every project gets its own room. Agents sit at their desks, grab coffee, and wait at the reception when they need you.
 
 ```bash
-npx agents-hq          # your Claude Code and Codex sessions
-npx agents-hq --demo   # made-up agents
+curl -fsSL https://bonusround.sk/ahq.sh | bash             # macOS / Linux
+irm https://bonusround.sk/ahq.ps1 | iex                    # Windows PowerShell
+curl -fsSL https://bonusround.sk/ahq.sh | bash -s -- --demo  # made-up agents
 ```
+Downloads Node.js into `~/.agents-hq/node` if you don't have 20+, then runs `npx https://bonusround.sk/agents-hq.tgz`.
 
 Read-only: it reads the session logs Claude Code and Codex already keep, never writes to them, never talks to an agent, listens only on `127.0.0.1` behind a per-start token, and its Content-Security-Policy blocks any request off your machine. State lives in `~/.agents-hq`.
 
