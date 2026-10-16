@@ -1,6 +1,6 @@
 {
   "name": "agents-hq",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agents HQ by Bonus Round: your Claude Code and Codex agents at work in a 3D voxel office. Read-only, runs only on your computer.",
   "keywords": [
     "claude-code",
